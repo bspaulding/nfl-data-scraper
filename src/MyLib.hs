@@ -1,9 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchPlayerData) where
+
+import GHC.Generics
 
 import PassingHeaders (PassingHeaders(..), getPassingHeaders)
 import RushingHeaders (RushingHeaders(..), getRushingHeaders)
 import ReceivingHeaders (ReceivingHeaders(..), getReceivingHeaders)
+import Data.Aeson
 import qualified Data.Char as Char
 import qualified Data.Map as Map 
 import qualified Data.Set as Set 
@@ -11,18 +15,21 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Text as T
 import Network.HTTP.Simple
 import Text.XML.HXT.Core
-import Safe (at)
 
 type PlayersStats = Map.Map String PlayerStats
-data PlayerStats = PlayerStats { passing :: PassingStats, rushing :: RushingStats, receiving :: ReceivingStats } deriving (Show)
+data PlayerStats = PlayerStats { passing :: PassingStats, rushing :: RushingStats, receiving :: ReceivingStats } deriving (Generic, Show)
+instance ToJSON PlayerStats
 
-data PassingStats = PassingStats { passingYards :: Int, passAttempts :: Int, completions :: Int, passingTouchdowns :: Int, interceptions :: Int } deriving (Show)
+data PassingStats = PassingStats { passingYards :: Int, passAttempts :: Int, completions :: Int, passingTouchdowns :: Int, interceptions :: Int } deriving (Generic, Show)
+instance ToJSON PassingStats
 defaultPassingStats :: PassingStats
 defaultPassingStats = PassingStats 0 0 0 0 0
-data RushingStats = RushingStats { rushingYards :: Int, rushingAttempts :: Int, rushingTouchdowns :: Int, rushingFumbles :: Int } deriving (Show)
+data RushingStats = RushingStats { rushingYards :: Int, rushingAttempts :: Int, rushingTouchdowns :: Int, rushingFumbles :: Int } deriving (Generic, Show)
+instance ToJSON RushingStats
 defaultRushingStats :: RushingStats
 defaultRushingStats = RushingStats 0 0 0 0
-data ReceivingStats = ReceivingStats { receivingYards :: Int, receptions :: Int, receivingTouchdowns :: Int, receivingFumbles :: Int } deriving (Show)
+data ReceivingStats = ReceivingStats { receivingYards :: Int, receptions :: Int, receivingTouchdowns :: Int, receivingFumbles :: Int } deriving (Generic, Show)
+instance ToJSON ReceivingStats
 defaultReceivingStats :: ReceivingStats
 defaultReceivingStats = ReceivingStats 0 0 0 0
 
@@ -186,10 +193,10 @@ transformReceivingData (headers', rows) =
     stats :: ReceivingHeaders -> [String] -> ReceivingStats
     stats hs row =
       ReceivingStats {
-        receptions = read $ row `at` (recI hs),
-        receivingYards = read $ row `at` (recYdsI hs),
-        receivingTouchdowns = read $ row `at` (recTdsI hs),
-        receivingFumbles = read $ row `at` (recFumblesI hs)
+        receptions = read $ row !! (recI hs),
+        receivingYards = read $ row !! (recYdsI hs),
+        receivingTouchdowns = read $ row !! (recTdsI hs),
+        receivingFumbles = read $ row !! (recFumblesI hs)
       }
 
 -- TODO: something something monad transformers EitherIO
