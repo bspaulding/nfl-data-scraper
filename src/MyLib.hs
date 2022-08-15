@@ -1,13 +1,15 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchPlayerData) where
-
-import GHC.Generics
 
 import PassingHeaders (PassingHeaders(..), getPassingHeaders)
 import RushingHeaders (RushingHeaders(..), getRushingHeaders)
 import ReceivingHeaders (ReceivingHeaders(..), getReceivingHeaders)
-import Data.Aeson
+import PlayersStats
+import PassingStats
+import RushingStats
+import ReceivingStats
+import NFLDataCategory
+import NFLUrlParams
 import qualified Data.Char as Char
 import qualified Data.Map as Map 
 import qualified Data.Set as Set 
@@ -16,42 +18,6 @@ import qualified Data.Text as T
 import Network.HTTP.Simple
 import Text.XML.HXT.Core
 
-type PlayersStats = Map.Map String PlayerStats
-data PlayerStats = PlayerStats { passing :: PassingStats, rushing :: RushingStats, receiving :: ReceivingStats } deriving (Generic, Show)
-instance ToJSON PlayerStats
-
-data PassingStats = PassingStats { passingYards :: Int, passAttempts :: Int, completions :: Int, passingTouchdowns :: Int, interceptions :: Int } deriving (Generic, Show)
-instance ToJSON PassingStats
-defaultPassingStats :: PassingStats
-defaultPassingStats = PassingStats 0 0 0 0 0
-data RushingStats = RushingStats { rushingYards :: Int, rushingAttempts :: Int, rushingTouchdowns :: Int, rushingFumbles :: Int } deriving (Generic, Show)
-instance ToJSON RushingStats
-defaultRushingStats :: RushingStats
-defaultRushingStats = RushingStats 0 0 0 0
-data ReceivingStats = ReceivingStats { receivingYards :: Int, receptions :: Int, receivingTouchdowns :: Int, receivingFumbles :: Int } deriving (Generic, Show)
-instance ToJSON ReceivingStats
-defaultReceivingStats :: ReceivingStats
-defaultReceivingStats = ReceivingStats 0 0 0 0
-
-data NFLDataCategory = Passing | Rushing | Receiving deriving (Enum, Eq, Show)
-
-toParam :: NFLDataCategory -> String
-toParam Passing = "passing"
-toParam Rushing = "rushing"
-toParam Receiving = "receiving"
-
-data NFLUrlParams = NFLUrlParams { year :: Int, category :: NFLDataCategory } deriving (Show)
-
-host :: String
-host = "https://www.nfl.com"
-
-sortOrder :: NFLDataCategory -> String
-sortOrder Passing = "passingyards"
-sortOrder Rushing = "rushingyards"
-sortOrder Receiving = "receivingreceptions"
-
-nflUrl :: NFLUrlParams -> String
-nflUrl NFLUrlParams{..} = host <> "/stats/player-stats/category/" <> toParam category <> "/" <> show year <> "/pre/all/" <> sortOrder category <> "/DESC"
 
 filterEmptyRows :: Int -> [String] -> [String]
 filterEmptyRows n xs =
