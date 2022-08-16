@@ -22,10 +22,10 @@ maintainer:         brad.spaulding@gmail.com
 extra-source-files: CHANGELOG.md
 
 library
-    exposed-modules:  MyLib
+    exposed-modules:  MyLib, CmdCompareSDIO
 
     -- Modules included in this library but not exported.
-    other-modules: PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams
+    other-modules: PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams, SDIOPlayerStats
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
