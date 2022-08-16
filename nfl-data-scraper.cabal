@@ -25,7 +25,7 @@ library
     exposed-modules:  MyLib, CmdCompareSDIO
 
     -- Modules included in this library but not exported.
-    other-modules: PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams, SDIOPlayerStats
+    other-modules: PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams, SDIOPlayerStats, KickingStats, KickingHeaders
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
