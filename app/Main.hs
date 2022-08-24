@@ -29,6 +29,14 @@ main = do
           let filepath = "player-data-" <> show year <> ".json"
           writeFile filepath $ B.unpack $ encode playerData
           putStrLn $ "Data wrote successfully to " <> filepath
+    "fetch-players" -> do
+       playerInfosE <- fetchPlayers
+       case playerInfosE of
+         Left err -> print err
+         Right playerInfos -> do
+           let filepath = "player-infos.json"
+           writeFile filepath $ B.unpack $ encode playerInfos
+           putStrLn $ "Data wrote successfully to " <> filepath
     _ -> putStrLn "Unknown command, options are 'fetch' or 'compare'"
 
 showData :: Show a => IO (Either String a) -> IO ()

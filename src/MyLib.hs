@@ -1,12 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..)) where
+module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..), FootballDB.fetchPlayers) where
 
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Char as Char
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import qualified FootballDB (fetchPlayers)
 import KickingHeaders
 import KickingStats
 import NFLDataCategory
@@ -15,6 +16,7 @@ import Network.HTTP.Simple
 import PassingHeaders (PassingHeaders (..), getPassingHeaders)
 import PassingStats
 import PlayersStats
+import RawData
 import ReceivingHeaders (ReceivingHeaders (..), getReceivingHeaders)
 import ReceivingStats
 import RushingHeaders (RushingHeaders (..), getRushingHeaders)
@@ -45,8 +47,6 @@ fetchPage url = do
     then return (headers, filterEmptyRows (length headers) rows, [])
     else return (headers, rows, nextPageLink)
 
--- First are the table headers, then the concat'd rows from each table
-type RawData = ([[String]], [String])
 
 fetchAllPages :: String -> IO RawData
 fetchAllPages url = fetchAllPagesR url ([], [])
@@ -103,13 +103,6 @@ transformRushingData (headers', rows) =
           rushingTouchdowns = read $ row !! (rushTdsI hs),
           rushingFumbles = read $ row !! (rushFumblesI hs)
         }
-
-chunkedRows :: RawData -> [[String]]
-chunkedRows (headers', rows) = (chunksOf ((length . head) headers') rows)
-
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf _ [] = []
-chunksOf n xs = (take n xs) : (chunksOf n (drop n xs))
 
 strip :: String -> String
 strip = T.unpack . T.strip . T.pack
