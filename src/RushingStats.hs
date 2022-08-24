@@ -5,7 +5,12 @@ module RushingStats where
 import Data.Aeson
 import GHC.Generics
 
-data RushingStats = RushingStats {rushingYards :: Int, rushingAttempts :: Int, rushingTouchdowns :: Int, rushingFumbles :: Int} deriving (Generic, Show)
+data RushingStats = RushingStats
+  { rushingYards :: Int
+  , rushingAttempts :: Int -- TODO: not used?
+  , rushingTouchdowns :: Int
+  , rushingFumbles :: Int
+  } deriving (Generic, Show)
 
 instance ToJSON RushingStats
 

@@ -7,7 +7,7 @@ import GHC.Generics
 
 data PassingStats = PassingStats
   { passingYards :: Int,
-    passAttempts :: Int,
+    passAttempts :: Int, -- TODO: not used?
     completions :: Int,
     passingTouchdowns :: Int,
     interceptions :: Int

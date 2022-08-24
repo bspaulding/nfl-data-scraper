@@ -1,23 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module FootballDB (fetchPlayers) where
+module FootballDB (fetchPlayers, PlayerInfo(..)) where
 
-import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.ByteString.Internal
 import qualified Data.Char as Char
 import qualified Data.Either as Either
 import qualified Data.List as List
-import GHC.Generics
 import Network.HTTP.Simple
 import RawData
 import Text.XML.HXT.Core
-
-data PlayerInfo = PlayerInfo { name :: String, position :: String } deriving (Generic, Show)
-
-instance ToJSON PlayerInfo
+import PlayerInfo
 
 letters :: [Char]
 letters = map Char.chr $ take 26 [65..]
