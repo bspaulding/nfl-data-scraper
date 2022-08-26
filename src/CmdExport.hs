@@ -4,6 +4,7 @@ import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Sequence as Seq
 import qualified PlayersStats as PlayersStats
 import PlayersStats (PlayersStats)
 import qualified PlayerInfo as PlayerInfo
@@ -18,7 +19,7 @@ exportSDIOFormat year = do
   print playerInfos
   case (playersStats, playerInfos) of
     (Right playersStats', Right playerInfos') -> do
-      _ <- writeSdioFormatFile year $ makeSDIOFormat playersStats' playerInfos'
+      _ <- writeSdioFormatFile year $ makeSDIOFormat year playersStats' playerInfos'
       return $ Right ()
     (Left e1, Left e2) -> return $ Left $ List.intercalate ". " [e1, e2]
     (Left e1, _) -> return $ Left e1
@@ -29,19 +30,19 @@ readPlayerData year = do
   dataStr <- readFile $ "player-data-" <> show year <> ".json"
   return $ eitherDecode $ L8.pack dataStr
 
-readPlayerInfos :: IO (Either String [PlayerInfo])
+readPlayerInfos :: IO (Either String (Seq.Seq PlayerInfo))
 readPlayerInfos = do
   dataStr <- readFile $ "player-infos.json"
   return $ eitherDecode $ L8.pack dataStr
 
-makeSDIOFormat :: PlayersStats -> [PlayerInfo] -> [SDIOPlayerStats]
-makeSDIOFormat playersStats playerInfos =
-  map (toSDIOPlayerStats playersStats) playerInfos
+makeSDIOFormat :: Int -> PlayersStats -> Seq.Seq PlayerInfo -> Seq.Seq SDIOPlayerStats
+makeSDIOFormat year playersStats playerInfos =
+  Seq.mapWithIndex (toSDIOPlayerStats year playersStats) playerInfos
 
-toSDIOPlayerStats :: PlayersStats -> PlayerInfo -> SDIOPlayerStats
-toSDIOPlayerStats playersStats playerInfo = SDIOPlayerStats
-  { playerID = 0,
-    season = 0,
+toSDIOPlayerStats :: Int -> PlayersStats -> Int -> PlayerInfo -> SDIOPlayerStats
+toSDIOPlayerStats year playersStats i playerInfo = SDIOPlayerStats
+  { playerID = i,
+    season = year,
     name = PlayerInfo.name playerInfo,
     position = PlayerInfo.position playerInfo,
     passingCompletions = fromIntegral $ PlayersStats.passingCompletions playerStats,
@@ -53,12 +54,23 @@ toSDIOPlayerStats playersStats playerInfo = SDIOPlayerStats
     fumbles = fromIntegral $ PlayersStats.fumbles playerStats,
     receptions = fromIntegral $ PlayersStats.receptions playerStats,
     receivingYards = fromIntegral $ PlayersStats.receivingYards playerStats,
-    receivingTouchdowns = fromIntegral $ PlayersStats.receivingTouchdowns playerStats
+    receivingTouchdowns = fromIntegral $ PlayersStats.receivingTouchdowns playerStats,
+    twoPointConversionPasses = 0, -- TODO
+    twoPointConversionRuns = 0, -- TODO
+    twoPointConversionReceptions = 0, -- TODO
+    extraPointsMade = 0, -- TODO
+    extraPointsAttempted = 0, -- TODO
+    played = 16, -- TODO
+    fieldGoalsMade0to19  = fromIntegral $ PlayersStats.fieldGoalsMade0to19 playerStats,
+    fieldGoalsMade20to29 = fromIntegral $ PlayersStats.fieldGoalsMade20to29 playerStats,
+    fieldGoalsMade30to39 = fromIntegral $ PlayersStats.fieldGoalsMade30to39 playerStats,
+    fieldGoalsMade40to49 = fromIntegral $ PlayersStats.fieldGoalsMade40to49 playerStats,
+    fieldGoalsMade50Plus = fromIntegral $ PlayersStats.fieldGoalsMade50Plus playerStats
   }
   where
     playerStats = Map.findWithDefault PlayersStats.defaultPlayerStats (PlayerInfo.name playerInfo) playersStats
 
-writeSdioFormatFile :: Int -> [SDIOPlayerStats] -> IO ()
+writeSdioFormatFile :: Int -> Seq.Seq SDIOPlayerStats -> IO ()
 writeSdioFormatFile year stats =
   writeFile filename $ L8.unpack $ encode stats
   where

@@ -61,3 +61,17 @@ receivingYards = ReceivingStats.receivingYards . receiving
 
 receivingTouchdowns :: PlayerStats -> Int
 receivingTouchdowns = ReceivingStats.receivingTouchdowns . receiving
+
+fieldGoalsMade0to19 :: PlayerStats -> Int
+fieldGoalsMade0to19 = KickingStats.fieldGoalsMade0to19 . kicking
+fieldGoalsMade20to29 :: PlayerStats -> Int
+fieldGoalsMade20to29 = KickingStats.fieldGoalsMade20to29 . kicking
+fieldGoalsMade30to39 :: PlayerStats -> Int
+fieldGoalsMade30to39 = KickingStats.fieldGoalsMade30to39 . kicking
+fieldGoalsMade40to49 :: PlayerStats -> Int
+fieldGoalsMade40to49 = KickingStats.fieldGoalsMade40to49 . kicking
+fieldGoalsMade50Plus :: PlayerStats -> Int
+fieldGoalsMade50Plus stats =
+  (KickingStats.fieldGoalsMade50to59 . kicking) stats
+  + (KickingStats.fieldGoalsMade60Plus . kicking) stats
+
