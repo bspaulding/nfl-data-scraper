@@ -29,7 +29,7 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.14.3.0,
+    build-depends:    base ^>=4.16.4.0,
                       bytestring,
                       http-conduit,
                       hxt,
@@ -49,7 +49,7 @@ executable nfl-data-scraper
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base ^>=4.14.3.0,
+        base ^>=4.16.4.0,
         nfl-data-scraper,
         aeson,
         bytestring
