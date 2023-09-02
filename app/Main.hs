@@ -47,7 +47,7 @@ main = do
       case sdioExportE of
         Left err -> print err
         Right _ -> putStrLn "Done."
-    _ -> putStrLn "Unknown command, options are 'fetch' or 'compare'"
+    _ -> putStrLn "Unknown command, options are 'fetch', 'compare', 'export'"
 
 showData :: Show a => IO (Either String a) -> IO ()
 showData io = do
