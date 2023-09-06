@@ -68,7 +68,7 @@ toSDIOPlayerStats year playersStats i playerInfo = SDIOPlayerStats
     fieldGoalsMade50Plus = fromIntegral $ PlayersStats.fieldGoalsMade50Plus playerStats
   }
   where
-    playerStats = Map.findWithDefault PlayersStats.defaultPlayerStats (PlayerInfo.name playerInfo) playersStats
+    playerStats = Map.findWithDefault PlayersStats.defaultPlayerStats playerInfo playersStats
 
 writeSdioFormatFile :: Int -> Seq.Seq SDIOPlayerStats -> IO ()
 writeSdioFormatFile year stats =

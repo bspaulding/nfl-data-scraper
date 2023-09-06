@@ -1,6 +1,5 @@
 module Main where
 
-import CmdCompareSDIO (compareSDIO)
 import CmdExport (exportSDIOFormat)
 import Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as B
@@ -13,9 +12,6 @@ main = do
   print args
   let cmd = head args
   case cmd of
-    "compare" -> do
-      let year = read (args !! 1) :: Int
-      compareSDIO year
     "fetch-category" -> do
       let year = read (args !! 1) :: Int
       let category = read (args !! 2) :: NFLDataCategory
@@ -33,14 +29,6 @@ main = do
           let filepath = "player-data-" <> show year <> ".json"
           writeFile filepath $ B.unpack $ encode playerData
           putStrLn $ "Data wrote successfully to " <> filepath
-    "fetch-players" -> do
-       playerInfosE <- fetchPlayers
-       case playerInfosE of
-         Left err -> print err
-         Right playerInfos -> do
-           let filepath = "player-infos.json"
-           writeFile filepath $ B.unpack $ encode playerInfos
-           putStrLn $ "Data wrote successfully to " <> filepath
     "export" -> do
       let year = read (args !! 1) :: Int
       sdioExportE <- exportSDIOFormat year

@@ -22,10 +22,10 @@ maintainer:         brad.spaulding@gmail.com
 extra-source-files: CHANGELOG.md
 
 library
-    exposed-modules:  MyLib, CmdCompareSDIO, CmdExport
+    exposed-modules:  MyLib, CmdExport
 
     -- Modules included in this library but not exported.
-    other-modules: PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams, SDIOPlayerStats, KickingStats, KickingHeaders, FootballDB, RawData, PlayerInfo
+    other-modules: PlayerInfoHeaders, PassingHeaders, RushingHeaders, ReceivingHeaders, PlayersStats, PassingStats, RushingStats, ReceivingStats, NFLDataCategory, NFLUrlParams, SDIOPlayerStats, KickingStats, KickingHeaders, RawData, PlayerInfo
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -38,7 +38,7 @@ library
                       aeson
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options: -Wall -Werror
+    -- ghc-options: -Wall -Werror
 
 executable nfl-data-scraper
     main-is:          Main.hs

@@ -1,13 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..), FootballDB.fetchPlayers) where
+module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..)) where
 
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Char as Char
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import qualified FootballDB (fetchPlayers)
+import Text.Read (readMaybe)
 import KickingHeaders
 import KickingStats
 import NFLDataCategory
@@ -15,6 +15,8 @@ import NFLUrlParams
 import Network.HTTP.Simple
 import PassingHeaders (PassingHeaders (..), getPassingHeaders)
 import PassingStats
+import PlayerInfoHeaders (PlayerInfoHeaders (..), getPlayerInfoHeaders)
+import PlayerInfo (PlayerInfo (..))
 import PlayersStats
 import RawData
 import ReceivingHeaders (ReceivingHeaders (..), getReceivingHeaders)
@@ -30,6 +32,9 @@ filterEmptyRows n xs =
     goodRow :: [String] -> Bool
     goodRow = not . Char.isDigit . head . head
 
+zipPlayerInfoAndRow :: PlayerInfo -> [String] -> [String]
+zipPlayerInfoAndRow playerInfo row = [playerId playerInfo, position playerInfo, team playerInfo] ++ row
+
 -- (header cells, row cells, next page link)
 fetchPage :: String -> IO ([String], [String], [String])
 fetchPage url = do
@@ -38,15 +43,51 @@ fetchPage url = do
   response <- httpLBS request
   let body = getResponseBody response
   let bodyStr = L8.unpack body
+  -- putStrLn $ "bodyStr = \n" ++ bodyStr
   let doc = readString [withParseHTML yes, withWarnings no] bodyStr
-  headers <- runX $ doc //> hasName "thead" //> hasName "th" //> getText
-  rows <- runX $ doc //> hasName "tbody" //> hasName "td" //> getText
-  putStrLn $ "length of headers = " <> show (length headers) <> ", length of rows = " <> show (length rows)
-  nextPageLink <- runX $ doc //> hasAttrValue "class" (== "nfl-o-table-pagination__next") >>> getAttrValue "href"
-  if ((length rows) `mod` (length headers)) /= 0
-    then return (headers, filterEmptyRows (length headers) rows, [])
-    else return (headers, rows, nextPageLink)
+  headersRaw <- runX $ doc //> hasName "thead" //> hasName "th" //> getText
+  rowsRaw <- runX $ doc //> hasName "tbody" //> hasName "td" //> getText
+  playerInfoLinks <- runX $ doc //> hasName "tbody" //> hasName "td" //> hasName "a" >>> getAttrValue "href"
+  let headers = filter (\s -> length s /= 0) $ map strip headersRaw
+  let rows = filter (\s -> length s /= 0) $ map strip rowsRaw
 
+  putStrLn $ "length of headers = " <> show (length headers) <> ", length of rows = " <> show (length rows)
+  putStrLn $ "[headers] = " ++ show headers
+  putStrLn $ "[playerInfoLinks] = " ++ show playerInfoLinks
+
+  playerInfos <- sequence (map fetchPlayerInfo playerInfoLinks)
+  putStrLn $ "playerInfos = " ++ show playerInfos
+
+  let headers' = ["playerId", "position", "team"] ++ headers
+  let rows' = concat $ zipWith zipPlayerInfoAndRow playerInfos (chunkedRows ([headers], rows))
+
+  putStrLn $ "[headers'] = " ++ show headers'
+  putStrLn $ "[rows'] = " ++ show rows'
+
+  nextPageLink <- runX $ doc //> hasAttrValue "class" (== "nfl-o-table-pagination__next") >>> getAttrValue "href"
+  if length headers == 0 || length rows == 0
+     then return ([], [], [])
+     else if ((length rows) `mod` (length headers)) /= 0
+       then return (headers', filterEmptyRows (length headers') rows', [])
+       else return (headers', rows', nextPageLink)
+
+fetchPlayerInfo :: String -> IO PlayerInfo
+fetchPlayerInfo playerInfoLink = do
+  let url = "https://www.nfl.com" ++ playerInfoLink
+  putStrLn $ "Fetching player info from " <> url
+  request <- parseRequest ("GET " <> url)
+  response <- httpLBS request
+  let body = getResponseBody response
+  let bodyStr = L8.unpack body
+  let doc = readString [withParseHTML yes, withWarnings no] bodyStr
+  name <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__title") //> getText
+  position <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__position") //> getText
+  team <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__team") //> getText
+  return $ PlayerInfo { PlayerInfo.playerId = playerInfoLink
+                      , name = (strip (head name))
+                      , position = (strip (head position))
+                      , team = if null team then "" else (strip (head team))
+                      }
 
 fetchAllPages :: String -> IO RawData
 fetchAllPages url = fetchAllPagesR url ([], [])
@@ -60,49 +101,86 @@ fetchAllPagesR url (headers, rows) = do
     else return data'
 
 checkHeaders :: RawData -> Either String RawData
-checkHeaders (headers, rows) =
+checkHeaders (headers', rows) =
   if any (/= (head headers)) (tail headers)
     then Left ("Headers were not consistent! " <> show headers)
     else Right (headers, rows)
+  where headers = filter (\xs -> length xs /= 0) headers'
 
-transformPassingData :: RawData -> Either String (Map.Map String PassingStats)
-transformPassingData (headers', rows) =
-  case getPassingHeaders headers' of
-    Left e -> Left e
-    Right headers -> Right $ foldl (insertStats headers) Map.empty (chunkedRows (headers', rows))
+getPlayerInfo :: PlayerInfoHeaders -> [String] -> PlayerInfo
+getPlayerInfo headers row =
+  PlayerInfo { playerId = row !! PlayerInfoHeaders.playerIdI headers
+             , team = row !! PlayerInfoHeaders.teamI headers
+             , position = row !! PlayerInfoHeaders.positionI headers
+             , name = row !! PlayerInfoHeaders.playerNameI headers
+             }
+
+-- transformData
+--    :: ([[String]] -> Either String statsHeaders)
+--    -> (statsHeaders -> [String] -> stats)
+--    -> RawData
+--    -> Either String (Map.Map PlayerInfo stats)
+transformData getStatsHeaders getStats (headers', rows) =
+  case (getPlayerInfoHeaders headers', getStatsHeaders headers') of
+    (Left e, _) -> Left e
+    (_, Left e) -> Left e
+    (Right playerInfoHeaders, Right headers) -> Right $ foldl (insertStats (playerInfoHeaders, headers)) Map.empty (chunkedRows (headers', rows))
   where
-    insertStats :: PassingHeaders -> (Map.Map String PassingStats) -> [String] -> (Map.Map String PassingStats)
-    insertStats headers acc row =
-      Map.insert (strip (row !! (PassingHeaders.playerNameI headers))) (stats headers row) acc
+    -- insertStats :: (PlayerInfoHeaders, statsHeaders) -> (Map.Map PlayerInfo stats) -> [String] -> (Map.Map PlayerInfo stats)
+    insertStats (playerInfoHeaders, headers) acc row =
+      Map.insert playerInfo (getStats headers row) acc
+      where playerInfo = getPlayerInfo playerInfoHeaders row
 
-    stats :: PassingHeaders -> [String] -> PassingStats
-    stats hs row =
-      PassingStats
-        { passingYards = read $ row !! (passYdsI hs),
-          passAttempts = read $ row !! (passAttemptsI hs),
-          passingTouchdowns = read $ row !! (passTdsI hs),
-          interceptions = read $ row !! (intsI hs),
-          completions = read $ row !! (completionsI hs)
-        }
+getPassingStats :: PassingHeaders -> [String] -> PassingStats
+getPassingStats hs row =
+  PassingStats
+    { passingYards = read $ row !! (passYdsI hs),
+      passAttempts = read $ row !! (passAttemptsI hs),
+      passingTouchdowns = read $ row !! (passTdsI hs),
+      interceptions = read $ row !! (intsI hs),
+      completions = read $ row !! (completionsI hs)
+    }
 
-transformRushingData :: RawData -> Either String (Map.Map String RushingStats)
-transformRushingData (headers', rows) =
-  case getRushingHeaders headers' of
-    Left e -> Left e
-    Right headers -> Right $ foldl (insertStats headers) Map.empty (chunkedRows (headers', rows))
-  where
-    insertStats :: RushingHeaders -> (Map.Map String RushingStats) -> [String] -> (Map.Map String RushingStats)
-    insertStats headers acc row =
-      Map.insert (strip (row !! (RushingHeaders.playerNameI headers))) (stats headers row) acc
+getRushingStats :: RushingHeaders -> [String] -> RushingStats
+getRushingStats hs row =
+  RushingStats
+    { rushingYards = read $ row !! (rushYdsI hs),
+      rushingAttempts = read $ row !! (rushAttemptsI hs),
+      rushingTouchdowns = read $ row !! (rushTdsI hs),
+      rushingFumbles = read $ row !! (rushFumblesI hs)
+    }
 
-    stats :: RushingHeaders -> [String] -> RushingStats
-    stats hs row =
-      RushingStats
-        { rushingYards = read $ row !! (rushYdsI hs),
-          rushingAttempts = read $ row !! (rushAttemptsI hs),
-          rushingTouchdowns = read $ row !! (rushTdsI hs),
-          rushingFumbles = read $ row !! (rushFumblesI hs)
-        }
+getReceivingStats :: ReceivingHeaders -> [String] -> ReceivingStats
+getReceivingStats hs row =
+  ReceivingStats
+    { receptions = read $ row !! (recI hs),
+      receivingYards = read $ row !! (recYdsI hs),
+      receivingTouchdowns = read $ row !! (recTdsI hs),
+      receivingFumbles = read $ row !! (recFumblesI hs)
+    }
+
+getKickingStats :: KickingHeaders -> [String] -> KickingStats
+getKickingStats hs row =
+  KickingStats
+    { fieldGoalsMade0to19 = maybe (-1) id $ readMaybe $ takeWhile Char.isDigit $ row !! fg0to19I hs,
+      fieldGoalsMade20to29 = maybe (-1) id $ readMaybe $ takeWhile Char.isDigit $ row !! fg20to29I hs,
+      fieldGoalsMade30to39 = maybe (-1) id $ readMaybe $ takeWhile Char.isDigit $ row !! fg30to39I hs,
+      fieldGoalsMade40to49 = maybe (-1) id $ readMaybe $ takeWhile Char.isDigit $ row !! fg40to49I hs,
+      fieldGoalsMade50to59 = maybe (-1) id $ readMaybe $ takeWhile Char.isDigit $ row !! fg50to59I hs,
+      fieldGoalsMade60Plus = maybe (-1) id $ readMaybe$ takeWhile Char.isDigit $ row !! fg60PlusI hs
+    }
+
+transformPassingData :: RawData -> Either String PlayersPassingStats
+transformPassingData = transformData getPassingHeaders getPassingStats
+
+transformRushingData :: RawData -> Either String PlayersRushingStats
+transformRushingData = transformData getRushingHeaders getRushingStats
+
+transformReceivingData :: RawData -> Either String PlayersReceivingStats
+transformReceivingData = transformData getReceivingHeaders getReceivingStats
+
+transformKickingData :: RawData -> Either String PlayersKickingStats
+transformKickingData = transformData getKickingHeaders getKickingStats
 
 strip :: String -> String
 strip = T.unpack . T.strip . T.pack
@@ -114,7 +192,7 @@ fetchData category year = do
   print result
   return $ checkHeaders result
 
-type PlayersPassingStats = Map.Map String PassingStats
+type PlayersPassingStats = Map.Map PlayerInfo PassingStats
 
 fetchPassingData :: Int -> IO (Either String PlayersPassingStats)
 fetchPassingData year = do
@@ -123,7 +201,7 @@ fetchPassingData year = do
     Left e -> return $ Left e
     Right rawData' -> return $ transformPassingData rawData'
 
-type PlayersRushingStats = Map.Map String RushingStats
+type PlayersRushingStats = Map.Map PlayerInfo RushingStats
 
 fetchRushingData :: Int -> IO (Either String PlayersRushingStats)
 fetchRushingData year = do
@@ -132,7 +210,7 @@ fetchRushingData year = do
     Left e -> return $ Left e
     Right rawData' -> return $ transformRushingData rawData'
 
-type PlayersReceivingStats = Map.Map String ReceivingStats
+type PlayersReceivingStats = Map.Map PlayerInfo ReceivingStats
 
 fetchReceivingData :: Int -> IO (Either String PlayersReceivingStats)
 fetchReceivingData year = do
@@ -141,54 +219,16 @@ fetchReceivingData year = do
     Left e -> return $ Left e
     Right rawData' -> return $ transformReceivingData rawData'
 
-transformReceivingData :: RawData -> Either String (Map.Map String ReceivingStats)
-transformReceivingData (headers', rows) =
-  case getReceivingHeaders headers' of
-    Left e -> Left e
-    Right headers -> Right $ foldl (insertStats headers) Map.empty (chunkedRows (headers', rows))
-  where
-    insertStats :: ReceivingHeaders -> (Map.Map String ReceivingStats) -> [String] -> (Map.Map String ReceivingStats)
-    insertStats headers acc row =
-      Map.insert (strip (row !! (ReceivingHeaders.playerNameI headers))) (stats headers row) acc
-
-    stats :: ReceivingHeaders -> [String] -> ReceivingStats
-    stats hs row =
-      ReceivingStats
-        { receptions = read $ row !! (recI hs),
-          receivingYards = read $ row !! (recYdsI hs),
-          receivingTouchdowns = read $ row !! (recTdsI hs),
-          receivingFumbles = read $ row !! (recFumblesI hs)
-        }
-
-type PlayersKickingStats = Map.Map String KickingStats
+type PlayersKickingStats = Map.Map PlayerInfo KickingStats
 
 fetchKickingData :: Int -> IO (Either String PlayersKickingStats)
 fetchKickingData year = do
   rawData <- fetchData Kicking year
   case rawData of
     Left e -> return $ Left e
-    Right rawData' -> return $ transformKickingData rawData'
+    Right rawData' -> do
+      return $ transformKickingData rawData'
 
-transformKickingData :: RawData -> Either String (Map.Map String KickingStats)
-transformKickingData (headers', rows) =
-  case getKickingHeaders headers' of
-    Left e -> Left e
-    Right headers -> Right $ foldl (insertStats headers) Map.empty (chunkedRows (headers', rows))
-  where
-    insertStats :: KickingHeaders -> Map.Map String KickingStats -> [String] -> Map.Map String KickingStats
-    insertStats headers acc row =
-      Map.insert (strip (row !! KickingHeaders.playerNameI headers)) (stats headers row) acc
-
-    stats :: KickingHeaders -> [String] -> KickingStats
-    stats hs row =
-      KickingStats
-        { fieldGoalsMade0to19 = read $ takeWhile Char.isDigit $ row !! fg0to19I hs,
-          fieldGoalsMade20to29 = read $ takeWhile Char.isDigit $ row !! fg20to29I hs,
-          fieldGoalsMade30to39 = read $ takeWhile Char.isDigit $ row !! fg30to39I hs,
-          fieldGoalsMade40to49 = read $ takeWhile Char.isDigit $ row !! fg40to49I hs,
-          fieldGoalsMade50to59 = read $ takeWhile Char.isDigit $ row !! fg50to59I hs,
-          fieldGoalsMade60Plus = read $ takeWhile Char.isDigit $ row !! fg60PlusI hs
-        }
 
 -- TODO: something something monad transformers EitherIO
 fetchPlayerData :: Int -> IO (Either String PlayersStats)
@@ -217,15 +257,15 @@ mergeStats passingData rushingData receivingData kickingData =
   where
     allNames = Set.union (Map.keysSet kickingData) $ Set.union (Map.keysSet receivingData) $ Set.union (Map.keysSet passingData) (Map.keysSet rushingData)
 
-    foldPlayer :: PlayersStats -> String -> PlayersStats
+    foldPlayer :: PlayersStats -> PlayerInfo -> PlayersStats
     foldPlayer acc name =
       Map.insert name (makeStatsRecord name) acc
 
-    makeStatsRecord :: String -> PlayerStats
-    makeStatsRecord name =
+    makeStatsRecord :: PlayerInfo -> PlayerStats
+    makeStatsRecord info =
       PlayerStats
-        { passing = Map.findWithDefault defaultPassingStats name passingData,
-          rushing = Map.findWithDefault defaultRushingStats name rushingData,
-          receiving = Map.findWithDefault defaultReceivingStats name receivingData,
-          kicking = Map.findWithDefault defaultKickingStats name kickingData
+        { passing = Map.findWithDefault defaultPassingStats info passingData,
+          rushing = Map.findWithDefault defaultRushingStats info rushingData,
+          receiving = Map.findWithDefault defaultReceivingStats info receivingData,
+          kicking = Map.findWithDefault defaultKickingStats info kickingData
         }

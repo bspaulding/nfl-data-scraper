@@ -9,8 +9,9 @@ import KickingStats
 import PassingStats
 import ReceivingStats
 import RushingStats
+import PlayerInfo
 
-type PlayersStats = Map.Map String PlayerStats
+type PlayersStats = Map.Map PlayerInfo PlayerStats
 
 data PlayerStats = PlayerStats
   { passing :: PassingStats,

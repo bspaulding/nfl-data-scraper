@@ -12,11 +12,11 @@ data RushingHeaders = RushingHeaders
     } deriving (Show)
 
 getRushingHeaders :: [[String]] -> Either String RushingHeaders
-getRushingHeaders headers = 
+getRushingHeaders headers =
   case (playerNameIM, rushYdsIM, rushAttemptsIM, rushTdsIM, rushFumblesIM) of
     (Just playerNameI, Just rushYdsI, Just rushAttemptsI, Just rushTdsI, Just rushFumblesI) -> Right RushingHeaders{ playerNameI, rushYdsI, rushAttemptsI, rushTdsI, rushFumblesI}
     _ -> Left ("Could not get rushing headers from " <> show header)
-  where 
+  where
     header = Seq.fromList $ head headers
     playerNameIM = Seq.findIndexL ((==) "Player") header
     rushYdsIM = Seq.findIndexL ((==) "Rush Yds") header
