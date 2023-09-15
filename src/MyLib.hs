@@ -2,6 +2,7 @@
 
 module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..)) where
 
+import qualified Control.Concurrent.Async as Async
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Char as Char
 import qualified Data.Map as Map
@@ -35,6 +36,9 @@ filterEmptyRows n xs =
 zipPlayerInfoAndRow :: PlayerInfo -> [String] -> [String]
 zipPlayerInfoAndRow playerInfo row = [playerId playerInfo, position playerInfo, team playerInfo] ++ row
 
+parSequence :: [IO a] -> IO [a]
+parSequence xs = Async.mapConcurrently id xs
+
 -- (header cells, row cells, next page link)
 fetchPage :: String -> IO ([String], [String], [String])
 fetchPage url = do
@@ -55,7 +59,7 @@ fetchPage url = do
   putStrLn $ "[headers] = " ++ show headers
   putStrLn $ "[playerInfoLinks] = " ++ show playerInfoLinks
 
-  playerInfos <- sequence (map fetchPlayerInfo playerInfoLinks)
+  playerInfos <- parSequence (map fetchPlayerInfo playerInfoLinks)
   putStrLn $ "playerInfos = " ++ show playerInfos
 
   let headers' = ["playerId", "position", "team"] ++ headers
@@ -233,19 +237,21 @@ fetchKickingData year = do
 -- TODO: something something monad transformers EitherIO
 fetchPlayerData :: Int -> IO (Either String PlayersStats)
 fetchPlayerData year = do
-  passingDataE <- fetchPassingData year
+  (passingDataE, rushingDataE, receivingDataE, kickingDataE)
+    <- Async.runConcurrently $ (,,,)
+    <$> Async.Concurrently (fetchPassingData year)
+    <*> Async.Concurrently (fetchRushingData year)
+    <*> Async.Concurrently (fetchReceivingData year)
+    <*> Async.Concurrently (fetchKickingData year)
   case passingDataE of
     Left e -> return (Left e)
     Right passingData -> do
-      rushingDataE <- fetchRushingData year
       case rushingDataE of
         Left e -> return (Left e)
         Right rushingData -> do
-          receivingDataE <- fetchReceivingData year
           case receivingDataE of
             Left e -> return (Left e)
             Right receivingData -> do
-              kickingDataE <- fetchKickingData year
               case kickingDataE of
                 Left e -> return (Left e)
                 Right kickingData ->
