@@ -14,9 +14,8 @@ import SDIOPlayerStats
 exportSDIOFormat :: Int -> IO (Either String ())
 exportSDIOFormat year = do
   playersStats <- readPlayerData year
-  print playersStats
-  playerInfos <- readPlayerInfos
-  print playerInfos
+  -- playerInfos <- readPlayerInfos
+  let playerInfos = Seq.fromList <$> Map.keys <$> playersStats
   case (playersStats, playerInfos) of
     (Right playersStats', Right playerInfos') -> do
       _ <- writeSdioFormatFile year $ makeSDIOFormat year playersStats' playerInfos'

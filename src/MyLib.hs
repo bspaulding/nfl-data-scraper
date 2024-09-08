@@ -243,19 +243,13 @@ fetchPlayerData year = do
     <*> Async.Concurrently (fetchRushingData year)
     <*> Async.Concurrently (fetchReceivingData year)
     <*> Async.Concurrently (fetchKickingData year)
-  case passingDataE of
-    Left e -> return (Left e)
-    Right passingData -> do
-      case rushingDataE of
-        Left e -> return (Left e)
-        Right rushingData -> do
-          case receivingDataE of
-            Left e -> return (Left e)
-            Right receivingData -> do
-              case kickingDataE of
-                Left e -> return (Left e)
-                Right kickingData ->
-                  return $ Right $ mergeStats passingData rushingData receivingData kickingData
+  case (passingDataE, rushingDataE, receivingDataE, kickingDataE) of
+    (Left e, _, _, _) -> return (Left e)
+    (_, Left e, _, _) -> return (Left e)
+    (_, _, Left e, _) -> return (Left e)
+    (_, _, _, Left e) -> return (Left e)
+    (Right passingData, Right rushingData, Right receivingData, Right kickingData) ->
+      return $ Right $ mergeStats passingData rushingData receivingData kickingData
 
 mergeStats :: PlayersPassingStats -> PlayersRushingStats -> PlayersReceivingStats -> PlayersKickingStats -> PlayersStats
 mergeStats passingData rushingData receivingData kickingData =
