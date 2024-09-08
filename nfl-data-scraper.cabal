@@ -29,7 +29,7 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.4.0,
+    build-depends:    base ^>=4.17.2.1,
                       bytestring,
                       http-conduit,
                       hxt,
@@ -43,6 +43,7 @@ library
 
 executable nfl-data-scraper
     main-is:          Main.hs
+    other-modules:    ScraperArgs
 
     -- Modules included in this executable, other than Main.
     -- other-modules:
@@ -50,10 +51,11 @@ executable nfl-data-scraper
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base ^>=4.16.4.0,
+        base ^>=4.17.2.1,
         nfl-data-scraper,
         aeson,
-        bytestring
+        bytestring,
+        optparse-applicative
 
     hs-source-dirs:   app
     default-language: Haskell2010
