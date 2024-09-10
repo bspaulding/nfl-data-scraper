@@ -2,12 +2,17 @@
 
 module MyLib (fetchPassingData, fetchRushingData, fetchReceivingData, fetchKickingData, fetchPlayerData, NFLDataCategory (..)) where
 
+import GHC.Conc (getNumCapabilities)
+import Control.Concurrent.MSem
 import qualified Control.Concurrent.Async as Async
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Char as Char
+import Data.Foldable (toList)
 import qualified Data.Map as Map
+import qualified Data.Sequence as Seq
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import qualified Data.Traversable as TR
 import Text.Read (readMaybe)
 import KickingHeaders
 import KickingStats
@@ -37,7 +42,15 @@ zipPlayerInfoAndRow :: PlayerInfo -> [String] -> [String]
 zipPlayerInfoAndRow playerInfo row = [playerId playerInfo, position playerInfo, team playerInfo] ++ row
 
 parSequence :: [IO a] -> IO [a]
-parSequence xs = Async.mapConcurrently id xs
+parSequence xs = do
+  cpus <- getNumCapabilities
+  sem <- new cpus
+  Async.mapConcurrently (with sem . id) xs
+
+mapPool :: TR.Traversable t => Int -> (a -> IO b) -> t a -> IO (t b)
+mapPool max f xs = do
+    sem <- new max
+    Async.mapConcurrently (with sem . f) xs
 
 -- (header cells, row cells, next page link)
 fetchPage :: String -> IO ([String], [String], [String])
@@ -55,18 +68,10 @@ fetchPage url = do
   let headers = filter (\s -> length s /= 0) $ map strip headersRaw
   let rows = filter (\s -> length s /= 0) $ map strip rowsRaw
 
-  putStrLn $ "length of headers = " <> show (length headers) <> ", length of rows = " <> show (length rows)
-  putStrLn $ "[headers] = " ++ show headers
-  putStrLn $ "[playerInfoLinks] = " ++ show playerInfoLinks
-
   playerInfos <- parSequence (map fetchPlayerInfo playerInfoLinks)
-  putStrLn $ "playerInfos = " ++ show playerInfos
 
   let headers' = ["playerId", "position", "team"] ++ headers
   let rows' = concat $ zipWith zipPlayerInfoAndRow playerInfos (chunkedRows ([headers], rows))
-
-  putStrLn $ "[headers'] = " ++ show headers'
-  putStrLn $ "[rows'] = " ++ show rows'
 
   nextPageLink <- runX $ doc //> hasAttrValue "class" (== "nfl-o-table-pagination__next") >>> getAttrValue "href"
   if length headers == 0 || length rows == 0
@@ -193,7 +198,7 @@ fetchData :: NFLDataCategory -> Int -> IO (Either String RawData)
 fetchData category year = do
   let url = nflUrl (NFLUrlParams {year = year, category = category})
   result <- fetchAllPages url
-  print result
+  -- print result
   return $ checkHeaders result
 
 type PlayersPassingStats = Map.Map PlayerInfo PassingStats
