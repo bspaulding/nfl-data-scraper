@@ -11,7 +11,7 @@ main :: IO ()
 main = parseScraperArgs >>= run
 
 run :: ScraperArgs -> IO ()
-run (ScraperArgs cmd year) =
+run (ScraperArgs cmd year outputPath statsFilePath) =
   case cmd of
     -- "fetch-category" -> do
     --   let category = read (args !! 2) :: NFLDataCategory
@@ -25,11 +25,11 @@ run (ScraperArgs cmd year) =
       case playerDataE of
         Left err -> print err
         Right playerData -> do
-          let filepath = "player-data-" <> show year <> ".json"
+          let filepath = if null outputPath then "player-data-" <> show year <> ".json" else outputPath
           writeFile filepath $ B.unpack $ encode playerData
           putStrLn $ "Data wrote successfully to " <> filepath
     "export" -> do
-      sdioExportE <- exportSDIOFormat year
+      sdioExportE <- exportSDIOFormat year outputPath statsFilePath
       case sdioExportE of
         Left err -> print err
         Right _ -> putStrLn "Done."

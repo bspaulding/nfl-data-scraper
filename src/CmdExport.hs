@@ -11,21 +11,22 @@ import qualified PlayerInfo as PlayerInfo
 import PlayerInfo (PlayerInfo)
 import SDIOPlayerStats
 
-exportSDIOFormat :: Int -> IO (Either String ())
-exportSDIOFormat year = do
-  playersStats <- readPlayerData year
+exportSDIOFormat :: Int -> String -> String -> IO (Either String ())
+exportSDIOFormat year outputPath statsFilePath = do
+  playersStats <- readPlayerData year statsFilePath
   let playerInfos = Seq.fromList <$> Map.keys <$> playersStats
   case (playersStats, playerInfos) of
     (Right playersStats', Right playerInfos') -> do
-      _ <- writeSdioFormatFile year $ makeSDIOFormat year playersStats' playerInfos'
+      _ <- writeSdioFormatFile year outputPath $ makeSDIOFormat year playersStats' playerInfos'
       return $ Right ()
     (Left e1, Left e2) -> return $ Left $ List.intercalate ". " [e1, e2]
     (Left e1, _) -> return $ Left e1
     (_, Left e2) -> return $ Left e2
 
-readPlayerData :: Int -> IO (Either String PlayersStats)
-readPlayerData year = do
-  dataStr <- readFile $ "player-data-" <> show year <> ".json"
+readPlayerData :: Int -> String -> IO (Either String PlayersStats)
+readPlayerData year statsFilePath = do
+  let path = if null statsFilePath then "player-data-" <> show year <> ".json" else statsFilePath
+  dataStr <- readFile path
   return $ eitherDecode $ L8.pack dataStr
 
 makeSDIOFormat :: Int -> PlayersStats -> Seq.Seq PlayerInfo -> Seq.Seq SDIOPlayerStats
@@ -63,8 +64,8 @@ toSDIOPlayerStats year playersStats i playerInfo = SDIOPlayerStats
   where
     playerStats = Map.findWithDefault PlayersStats.defaultPlayerStats playerInfo playersStats
 
-writeSdioFormatFile :: Int -> Seq.Seq SDIOPlayerStats -> IO ()
-writeSdioFormatFile year stats =
+writeSdioFormatFile :: Int -> String -> Seq.Seq SDIOPlayerStats -> IO ()
+writeSdioFormatFile year outputPath stats =
   writeFile filename $ L8.unpack $ encode stats
   where
-    filename = "nfl-data-export-" <> show year <> ".json"
+    filename = if null outputPath then "nfl-data-export-" <> show year <> ".json" else outputPath
