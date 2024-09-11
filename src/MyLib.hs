@@ -80,6 +80,10 @@ fetchPage url = do
        then return (headers', filterEmptyRows (length headers') rows', [])
        else return (headers', rows', nextPageLink)
 
+hasClass :: String -> String -> Bool
+hasClass needle haystack =
+  any (== (T.pack needle)) $ T.split (== ' ') (T.pack haystack)
+
 fetchPlayerInfo :: String -> IO PlayerInfo
 fetchPlayerInfo playerInfoLink = do
   let url = "https://www.nfl.com" ++ playerInfoLink
@@ -89,9 +93,9 @@ fetchPlayerInfo playerInfoLink = do
   let body = getResponseBody response
   let bodyStr = L8.unpack body
   let doc = readString [withParseHTML yes, withWarnings no] bodyStr
-  name <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__title") //> getText
-  position <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__position") //> getText
-  team <- runX $ doc //> hasAttrValue "class" (== "nfl-c-player-header__team") //> getText
+  name <- runX $ doc //> hasAttrValue "class" (hasClass "nfl-c-player-header__title") //> getText
+  position <- runX $ doc //> hasAttrValue "class" (hasClass "nfl-c-player-header__position") //> getText
+  team <- runX $ doc //> hasAttrValue "class" (hasClass "nfl-c-player-header__team") //> getText
   return $ PlayerInfo { PlayerInfo.playerId = playerInfoLink
                       , name = (strip (head name))
                       , position = (strip (head position))
