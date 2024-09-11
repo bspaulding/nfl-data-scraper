@@ -3,23 +3,16 @@ name:               nfl-data-scraper
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
+-- synopsis: Scraping stats from NFL.com
 
 -- A URL where users can report bugs.
--- bug-reports:
+-- bug-reports: https://github.com/bspaulding/nfl-data-scraper/issues
 
 -- The license under which the package is released.
--- license:
+-- license: MIT
+
 author:             Bradley J. Spaulding
 maintainer:         brad.spaulding@gmail.com
-
--- A copyright notice.
--- copyright:
--- category:
--- extra-source-files: CHANGELOG.md
 
 library
     exposed-modules:  MyLib, CmdExport
