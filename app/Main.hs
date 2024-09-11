@@ -26,7 +26,7 @@ run (ScraperArgs cmd year outputPath statsFilePath) =
         Left err -> print err
         Right playerData -> do
           let filepath = if null outputPath then "player-data-" <> show year <> ".json" else outputPath
-          writeFile filepath $ B.unpack $ encode playerData
+          encodeFile filepath playerData
           putStrLn $ "Data wrote successfully to " <> filepath
     "export" -> do
       sdioExportE <- exportSDIOFormat year outputPath statsFilePath

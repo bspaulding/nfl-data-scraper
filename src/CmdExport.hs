@@ -26,8 +26,7 @@ exportSDIOFormat year outputPath statsFilePath = do
 readPlayerData :: Int -> String -> IO (Either String PlayersStats)
 readPlayerData year statsFilePath = do
   let path = if null statsFilePath then "player-data-" <> show year <> ".json" else statsFilePath
-  dataStr <- readFile path
-  return $ eitherDecode $ L8.pack dataStr
+  return =<< eitherDecodeFileStrict path
 
 makeSDIOFormat :: Int -> PlayersStats -> Seq.Seq PlayerInfo -> Seq.Seq SDIOPlayerStats
 makeSDIOFormat year playersStats playerInfos =
@@ -66,6 +65,6 @@ toSDIOPlayerStats year playersStats i playerInfo = SDIOPlayerStats
 
 writeSdioFormatFile :: Int -> String -> Seq.Seq SDIOPlayerStats -> IO ()
 writeSdioFormatFile year outputPath stats =
-  writeFile filename $ L8.unpack $ encode stats
+  encodeFile filename stats
   where
     filename = if null outputPath then "nfl-data-export-" <> show year <> ".json" else outputPath
