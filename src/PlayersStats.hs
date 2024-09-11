@@ -21,7 +21,8 @@ data PlayerStats = PlayerStats
   }
   deriving (Generic, Show)
 
-instance ToJSON PlayerStats
+instance ToJSON PlayerStats where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON PlayerStats
 

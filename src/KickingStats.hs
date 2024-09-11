@@ -15,7 +15,8 @@ data KickingStats = KickingStats
   }
   deriving (Generic, Show)
 
-instance ToJSON KickingStats
+instance ToJSON KickingStats where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON KickingStats
 

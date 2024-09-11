@@ -7,7 +7,8 @@ import GHC.Generics
 
 data PlayerInfo = PlayerInfo { playerId :: String, team :: String, name :: String, position :: String } deriving (Generic, Eq, Ord, Show)
 
-instance ToJSON PlayerInfo
+instance ToJSON PlayerInfo where
+  toEncoding = genericToEncoding defaultOptions
 instance ToJSONKey PlayerInfo
 
 instance FromJSON PlayerInfo

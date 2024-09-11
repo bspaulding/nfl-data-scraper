@@ -12,7 +12,8 @@ data RushingStats = RushingStats
   , rushingFumbles :: Int
   } deriving (Generic, Show)
 
-instance ToJSON RushingStats
+instance ToJSON RushingStats where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON RushingStats
 

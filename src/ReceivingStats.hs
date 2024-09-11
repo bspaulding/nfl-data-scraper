@@ -13,7 +13,8 @@ data ReceivingStats = ReceivingStats
   }
   deriving (Generic, Show)
 
-instance ToJSON ReceivingStats
+instance ToJSON ReceivingStats where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON ReceivingStats
 

@@ -14,7 +14,8 @@ data PassingStats = PassingStats
   }
   deriving (Generic, Show)
 
-instance ToJSON PassingStats
+instance ToJSON PassingStats where
+  toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON PassingStats
 
