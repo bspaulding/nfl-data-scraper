@@ -22,10 +22,12 @@ scraperArgs = ScraperArgs
           <*> strOption
               ( long "output-path"
                 <> short 'o'
+                <> value ""
                 <> help "Path to write output to" )
           <*> strOption
               ( long "stats-file-path"
                 <> short 'i'
+                <> value ""
                 <> help "Path to read stats from. Ignored if command is 'fetch'." )
 
 opts = info (scraperArgs <**> helper)
