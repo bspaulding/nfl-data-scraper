@@ -14,7 +14,6 @@ import SDIOPlayerStats
 exportSDIOFormat :: Int -> IO (Either String ())
 exportSDIOFormat year = do
   playersStats <- readPlayerData year
-  -- playerInfos <- readPlayerInfos
   let playerInfos = Seq.fromList <$> Map.keys <$> playersStats
   case (playersStats, playerInfos) of
     (Right playersStats', Right playerInfos') -> do
@@ -27,11 +26,6 @@ exportSDIOFormat year = do
 readPlayerData :: Int -> IO (Either String PlayersStats)
 readPlayerData year = do
   dataStr <- readFile $ "player-data-" <> show year <> ".json"
-  return $ eitherDecode $ L8.pack dataStr
-
-readPlayerInfos :: IO (Either String (Seq.Seq PlayerInfo))
-readPlayerInfos = do
-  dataStr <- readFile $ "player-infos.json"
   return $ eitherDecode $ L8.pack dataStr
 
 makeSDIOFormat :: Int -> PlayersStats -> Seq.Seq PlayerInfo -> Seq.Seq SDIOPlayerStats

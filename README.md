@@ -8,5 +8,5 @@ Fetches all passing, rushing, receiving, and kicking data for the specified year
 
 `nfl-data-scraper export <year>`
 
-Reformats `player-data-<year>.json`, mapping to `player-infos.json`.
+Reformats `player-data-<year>.json`, writing to `nfl-data-export-<year>.json`.
 
