@@ -1,6 +1,6 @@
 module ScraperArgs (ScraperArgs(..), parseScraperArgs) where
 
-import Options.Applicative --(fullDesc, Parser, header, progDesc, helper, help, info, long, (<**>), short, auto, option, strOption)
+import Options.Applicative
 
 data ScraperArgs = ScraperArgs
   { cmd :: String
