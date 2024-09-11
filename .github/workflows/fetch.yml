@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-haskell@v1
+    - uses: haskell-actions/setup@v2
       with:
         ghc-version: '9.4.8'
         cabal-version: '3.10'
@@ -38,6 +38,15 @@ jobs:
         cabal build --only-dependencies --enable-tests --enable-benchmarks
     - name: Fetch
       run: cabal run nfl-data-scraper -- -c fetch -s 2024 -o player-data.json
+    - name: Upload data
+      uses: actions/upload-artifact@v4
+      with:
+        name: player-data
+        path: player-data.json
     - name: Export
       run: cabal run nfl-data-scraper -- -c export -s 2024 -i player-data.json -o player-data.sdio.json
-      
+    - name: Upload export
+      uses: actions/upload-artifact@v4
+      with:
+        name: player-data-sdio
+        path: player-data.sdio.json
