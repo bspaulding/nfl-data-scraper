@@ -12,6 +12,7 @@ data SDIOPlayerStats = SDIOPlayerStats
     season :: Int,
     name :: String,
     position :: String,
+    team :: String,
     passingCompletions :: Float,
     passingYards :: Float,
     passingTouchdowns :: Float,
@@ -43,6 +44,7 @@ instance ToJSON SDIOPlayerStats where
       "Season" .= season,
       "Name" .= name,
       "Position" .= position,
+      "Team" .= team,
       "PassingCompletions" .= passingCompletions,
       "PassingYards" .= passingYards,
       "PassingTouchdowns" .= passingTouchdowns,
@@ -73,6 +75,7 @@ instance FromJSON SDIOPlayerStats where
       <*> v .: "Season"
       <*> v .: "Name"
       <*> v .: "Position"
+      <*> v .: "Team"
       <*> v .: "PassingCompletions"
       <*> v .: "PassingYards"
       <*> v .: "PassingTouchdowns"

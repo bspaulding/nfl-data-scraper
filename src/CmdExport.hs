@@ -38,6 +38,7 @@ toSDIOPlayerStats year playersStats i playerInfo = SDIOPlayerStats
     season = year,
     name = PlayerInfo.name playerInfo,
     position = PlayerInfo.position playerInfo,
+    team = PlayerInfo.team playerInfo,
     passingCompletions = fromIntegral $ PlayersStats.passingCompletions playerStats,
     passingYards = fromIntegral $ PlayersStats.passingYards playerStats,
     passingTouchdowns = fromIntegral $ PlayersStats.passingTouchdowns playerStats,
