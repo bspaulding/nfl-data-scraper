@@ -82,4 +82,4 @@ jobs:
         name: vorp
         path: vorp
     - name: Upload vorp to S3
-      run: aws s3 cp ./vorp/out.csv s3://nfl-stats.motingo.com/api/vorp/${{ env.season }}.json
+      run: aws s3 cp ./vorp/out.csv s3://nfl-stats.motingo.com/api/vorp/${{ env.season }}.csv
