@@ -7,24 +7,40 @@ on:
     
 permissions:
   contents: read
-
+env:
+  season: 2024
 jobs:
-  build:
+  fetch:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/bspaulding/nfl-data-scraper:main
     steps:
     - name: Fetch
-      run: nfl-data-scraper -c fetch -s 2024 -o player-data.json
+      run: nfl-data-scraper -c fetch -s ${{ env.season }} -o player-data.json
     - name: Upload data
       uses: actions/upload-artifact@v4
       with:
         name: player-data
         path: player-data.json
     - name: Export
-      run: nfl-data-scraper -c export -s 2024 -i player-data.json -o player-data.sdio.json
+      run: nfl-data-scraper -c export -s ${{ env.season }} -i player-data.json -o player-data.sdio.json
     - name: Upload export
       uses: actions/upload-artifact@v4
       with:
         name: player-data-sdio
         path: player-data.sdio.json
+  upload:
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/amazonlinux/amazonlinux:latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+    - name: Download export
+      uses: actions/download-artifact@v4
+      with:
+        name: player-data-sdio
+        path: player-data.sdio.json
+    - name: Upload to S3
+      run: aws s3 cp ./player-data.sdio.json s3://nfl-stats.motingo.com/api/players/${{ env.season }}.json
