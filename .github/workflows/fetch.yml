@@ -46,7 +46,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: vorp
-        path: vorp.csv
+        path: out.csv
   upload-player-data:
     needs: fetch
     runs-on: ubuntu-latest
