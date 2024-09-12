@@ -15,11 +15,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
     - run: yum update && yum install -y awscli
-    - name: Download export
-      uses: actions/download-artifact@v4
-      with:
-        name: player-data-sdio
-        path: player-data-sdio
     - run: echo "hello s3" >> hello.txt
     - name: Upload to S3
       run: aws s3 cp ./hello.txt s3://nfl-stats.motingo.com/hello.txt
